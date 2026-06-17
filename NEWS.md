@@ -9,6 +9,9 @@
 
 ## Bug fixes
 
+* `gitlab_output()` fingerprints now include file path, line number, column number, linter name, and message instead of only the source line text. This fixes deduplication collisions when multiple linters flag the same line or identical lines appear at different locations (@d-morrison).
+* `gitlab_output()` severity mapping changed: `style` now maps to `"minor"` (previously `"info"`). The `"info"` level is hidden by default in GitLab's MR Code Quality widget, making style findings effectively invisible (@d-morrison).
+* `gitlab_output()` now guards against NULL/NA/empty fields in lint objects, preventing invalid JSON output from malformed or custom linters (@d-morrison).
 * Excluding `cyclocomp_linter()` in `available_linters()` or `linters_with_tags()`, which requires the weak dependency {cyclocomp}, no longer emits a warning (#2909, @MichaelChirico).
 * `repeat_linter()` no longer errors when `while` is in a column to the right of `}` (#2828, @MichaelChirico).
 * `get_source_expression(lines=)` and `lint(text=)` correctly handle text with unmarked encoding (#3046, @MichaelChirico).
