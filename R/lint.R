@@ -704,34 +704,17 @@ gitlab_output <- function(lints, filename = "lintr_results.json") {
   #
   # severity             String   The severity of the violation, can be one of info, minor, major, critical, or blocker.
 
-  # Safe scalar extraction helpers — guard against NULL/NA/empty fields
-  # that can occur with custom or malformed linters.
-  safe_char <- function(x, default = "") {
-    if (!is.null(x) && length(x) > 0L && !is.na(x[[1L]]) && nzchar(x[[1L]])) {
-      x[[1L]]
-    } else {
-      default
-    }
-  }
-  safe_int <- function(x, default = 0L) {
-    if (!is.null(x) && length(x) > 0L && !is.na(x[[1L]])) {
-      as.integer(x[[1L]])
-    } else {
-      default
-    }
-  }
-
   # GitLab format as R data structure
   res <-
     lapply(
       lints,
       function(lint) {
-        msg       <- safe_char(lint$message, "lint finding")
-        linter_nm <- safe_char(lint$linter, "unknown")
-        fname     <- safe_char(lint$filename, "unknown")
-        line_num  <- safe_int(lint$line_number, 1L)
-        col_num   <- safe_int(lint$column_number, 0L)
-        lint_type <- safe_char(lint$type, "style")
+        msg       <- gitlab_safe_char(lint$message, "lint finding")
+        linter_nm <- gitlab_safe_char(lint$linter, "unknown")
+        fname     <- gitlab_safe_char(lint$filename, "unknown")
+        line_num  <- gitlab_safe_int(lint$line_number, 1L)
+        col_num   <- gitlab_safe_int(lint$column_number, 0L)
+        lint_type <- gitlab_safe_char(lint$type, "style")
 
         list(
           description = msg,
@@ -754,6 +737,24 @@ gitlab_output <- function(lints, filename = "lintr_results.json") {
     )
 
   write(jsonlite::toJSON(res, pretty = TRUE, auto_unbox = TRUE), filename)
+}
+
+# Safe scalar extraction helpers for gitlab_output(): guard against
+# NULL/NA/empty fields that can occur with custom or malformed linters.
+gitlab_safe_char <- function(x, default = "") {
+  if (!is.null(x) && length(x) > 0L && !is.na(x[[1L]]) && nzchar(x[[1L]])) {
+    x[[1L]]
+  } else {
+    default
+  }
+}
+
+gitlab_safe_int <- function(x, default = 0L) {
+  if (!is.null(x) && length(x) > 0L && !is.na(x[[1L]])) {
+    as.integer(x[[1L]])
+  } else {
+    default
+  }
 }
 
 highlight_string <- function(message, column_number = NULL, ranges = NULL) {
