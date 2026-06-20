@@ -745,11 +745,11 @@ gitlab_output <- function(lints, filename = "lintr_results.json") {
 # Safe scalar extraction helpers for gitlab_output(): guard against
 # NULL/NA/empty fields that can occur with custom or malformed linters.
 gitlab_safe_char <- function(x, default = "") {
-  if (!is.null(x) && length(x) > 0L && !is.na(x[[1L]]) && nzchar(x[[1L]])) {
-    x[[1L]]
-  } else {
-    default
+  if (is.null(x) || length(x) == 0L || is.na(x[[1L]])) {
+    return(default)
   }
+  value <- as.character(x[[1L]])
+  if (nzchar(value)) value else default
 }
 
 gitlab_safe_int <- function(x, default = 0L) {

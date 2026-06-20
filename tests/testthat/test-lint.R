@@ -269,13 +269,16 @@ test_that("gitlab_output() writes expected report", {
   # because they encode file + line + column + linter + message
   expect_false(identical(result[[1L]]$fingerprint, result[[2L]]$fingerprint))
 
-  # two linters on the SAME line: fingerprints must also differ
+  # two different linters flagging the SAME line and column: the linter name
+  # must still make the fingerprints differ
   gitlab_output(
-    lint(text = "x<-1+2", linters = list(infix_spaces_linter(), assignment_linter())),
+    lint(text = "x=1", linters = list(infix_spaces_linter(), assignment_linter())),
     filename = tmpfile
   )
   result <- jsonlite::read_json(tmpfile)
   expect_length(result, 2L)
+  expect_false(identical(result[[1L]]$check_name, result[[2L]]$check_name))
+  expect_identical(result[[1L]]$location$lines$begin, result[[2L]]$location$lines$begin)
   expect_false(identical(result[[1L]]$fingerprint, result[[2L]]$fingerprint))
 
   # severity mapping
