@@ -54,8 +54,9 @@ simple example.
 - `inst/lintr/linters.csv` maps each linter to its tags. `inst/WORDLIST` is the
   spell-check allowlist. `inst/example/bad.R` is the README demo file.
 - `.dev/` holds developer-only scripts (fuzz testing, branch comparison, revdep
-  tooling, and the meta-tests run by `repo-meta-tests.yaml`). These are not part
-  of the installed package.
+  tooling, and the meta-tests run by the `repo-meta-tests` workflow at
+  `.github/workflows/repo-meta-tests.yaml`). These are not part of the installed
+  package.
 - `.github/workflows/` defines CI. `.lintr` is lintr's own config for
   self-linting.
 
