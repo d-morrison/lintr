@@ -279,7 +279,7 @@ test_that("gitlab_output() writes expected report", {
   expect_false(identical(result[[1L]]$fingerprint, result[[2L]]$fingerprint))
 
   # severity mapping
-  expect_identical(result[[1L]]$severity, "minor")  # style -> minor
+  expect_identical(result[[1L]]$severity, "minor")  # style maps to minor
 
   expect_error(gitlab_output(NULL), "must be a <lints> object", fixed = TRUE)
 })

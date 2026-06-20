@@ -720,7 +720,10 @@ gitlab_output <- function(lints, filename = "lintr_results.json") {
           description = msg,
           check_name  = linter_nm,
           fingerprint = digest::digest(
-            paste(fname, line_num, col_num, linter_nm, msg)
+            # Join with a control char (unit separator) that cannot appear in
+            # paths, linter names, or messages, so distinct fields never collide.
+            paste(fname, line_num, col_num, linter_nm, msg, sep = "\x1f"),
+            algo = "md5"
           ),
           location = list(
             path  = fname,
@@ -750,11 +753,11 @@ gitlab_safe_char <- function(x, default = "") {
 }
 
 gitlab_safe_int <- function(x, default = 0L) {
-  if (!is.null(x) && length(x) > 0L && !is.na(x[[1L]])) {
-    as.integer(x[[1L]])
-  } else {
-    default
+  if (is.null(x) || length(x) == 0L || is.na(x[[1L]])) {
+    return(default)
   }
+  value <- suppressWarnings(as.integer(x[[1L]]))
+  if (is.na(value)) default else value
 }
 
 highlight_string <- function(message, column_number = NULL, ranges = NULL) {
