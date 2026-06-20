@@ -720,9 +720,9 @@ gitlab_output <- function(lints, filename = "lintr_results.json") {
           description = msg,
           check_name  = linter_nm,
           fingerprint = digest::digest(
-            # Join with a control char (unit separator) that cannot appear in
-            # paths, linter names, or messages, so distinct fields never collide.
-            paste(fname, line_num, col_num, linter_nm, msg, sep = "\x1f"),
+            # Hash the fields as a structured list so no delimiter can ever
+            # make two different field sets collide.
+            list(fname, line_num, col_num, linter_nm, msg),
             algo = "md5"
           ),
           location = list(
