@@ -19,6 +19,10 @@ Generate a report of the linting results using the
 lintr only supports three severity types ("style", "warning", and "error")
 while the GitLab format supports five ("info", "minor", "major", "critical",
 and "blocker"). The types "style", "warning", and "error" are mapped to
-the GitLab types "info", "major", and "blocker", respectively. The GitLab
-types "minor" and "critical" are ignored.
+the GitLab types "minor", "major", and "blocker", respectively. The GitLab
+types "info" and "critical" are ignored.
+
+The fingerprint is computed from the file path, line number, column number,
+linter name, and message to ensure uniqueness even when multiple linters
+flag the same source line.
 }

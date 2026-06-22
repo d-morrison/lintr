@@ -249,35 +249,40 @@ test_that("gitlab_output() writes expected report", {
 
   # single lint
   gitlab_output(lint(text = "x<-1", linters = infix_spaces_linter()), filename = tmpfile)
-  expect_identical(
-    jsonlite::read_json(tmpfile),
-    list(list(
-      description = "Put spaces around all infix operators.",
-      check_name = "infix_spaces_linter",
-      fingerprint = "eb7cc117e8616bd8170fe6aa29e8b0ae849ac6c7",
-      location = list(path = "<text>", lines = list(begin = 1L)),
-      severity = "info"
-    ))
-  )
+  result <- jsonlite::read_json(tmpfile)
+  expect_length(result, 1L)
+  expect_identical(result[[1L]]$description, "Put spaces around all infix operators.")
+  expect_identical(result[[1L]]$check_name, "infix_spaces_linter")
+  expect_identical(result[[1L]]$location, list(path = "<text>", lines = list(begin = 1L)))
+  expect_identical(result[[1L]]$severity, "minor")
+  # fingerprint is a 32-char hex MD5 hash
 
-  # two lints
+  expect_match(result[[1L]]$fingerprint, "^[0-9a-f]{32}$")
+
+  # two lints on different lines: fingerprints must differ
   gitlab_output(lint(text = c("x<-1", "y<-1"), linters = infix_spaces_linter()), filename = tmpfile)
-  expect_identical(
-    jsonlite::read_json(tmpfile),
-    list(list(
-      description = "Put spaces around all infix operators.",
-      check_name = "infix_spaces_linter",
-      fingerprint = "eb7cc117e8616bd8170fe6aa29e8b0ae849ac6c7",
-      location = list(path = "<text>", lines = list(begin = 1L)),
-      severity = "info"
-    ), list(
-      description = "Put spaces around all infix operators.",
-      check_name = "infix_spaces_linter",
-      fingerprint = "c20bd2090d08e3a5c12d670f5763ad43d233fe05",
-      location = list(path = "<text>", lines = list(begin = 2L)),
-      severity = "info"
-    ))
+  result <- jsonlite::read_json(tmpfile)
+  expect_length(result, 2L)
+  expect_identical(result[[1L]]$location$lines$begin, 1L)
+  expect_identical(result[[2L]]$location$lines$begin, 2L)
+  # Even though the source lines have the same pattern, fingerprints must be unique
+  # because they encode file + line + column + linter + message
+  expect_false(identical(result[[1L]]$fingerprint, result[[2L]]$fingerprint))
+
+  # two different linters flagging the SAME line and column: the linter name
+  # must still make the fingerprints differ
+  gitlab_output(
+    lint(text = "x=1", linters = list(infix_spaces_linter(), assignment_linter())),
+    filename = tmpfile
   )
+  result <- jsonlite::read_json(tmpfile)
+  expect_length(result, 2L)
+  expect_false(identical(result[[1L]]$check_name, result[[2L]]$check_name))
+  expect_identical(result[[1L]]$location$lines$begin, result[[2L]]$location$lines$begin)
+  expect_false(identical(result[[1L]]$fingerprint, result[[2L]]$fingerprint))
+
+  # severity mapping
+  expect_identical(result[[1L]]$severity, "minor")  # style maps to minor
 
   expect_error(gitlab_output(NULL), "must be a <lints> object", fixed = TRUE)
 })

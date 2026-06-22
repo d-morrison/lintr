@@ -671,8 +671,12 @@ sarif_output <- function(lints, filename = "lintr_results.sarif") {
 #' lintr only supports three severity types ("style", "warning", and "error")
 #' while the GitLab format supports five ("info", "minor", "major", "critical",
 #' and "blocker"). The types "style", "warning", and "error" are mapped to
-#' the GitLab types "info", "major", and "blocker", respectively. The GitLab
-#' types "minor" and "critical" are ignored.
+#' the GitLab types "minor", "major", and "blocker", respectively. The GitLab
+#' types "info" and "critical" are ignored.
+#'
+#' The fingerprint is computed from the file path, line number, column number,
+#' linter name, and message to ensure uniqueness even when multiple linters
+#' flag the same source line.
 #'
 #' @param lints The linting results
 #' @param filename The file name of the output report
@@ -700,35 +704,60 @@ gitlab_output <- function(lints, filename = "lintr_results.json") {
   #
   # severity             String   The severity of the violation, can be one of info, minor, major, critical, or blocker.
 
-  # Gitlab format as R data structure
+  # GitLab format as R data structure
   res <-
     lapply(
       lints,
       function(lint) {
-        with(
-          lint,
-          list(
-            description = message,
-            check_name = linter,
-            fingerprint =  digest::digest(line, algo = "sha1"),
-            location = list(
-              path = filename,
-              lines = list(
-                begin = line_number
-              )
-            ),
-            severity = switch(type,
-              style = "info",
-              error = "blocker",
-              warning = "major",
-              "info"
-            )
+        msg       <- gitlab_safe_char(lint$message, "lint finding")
+        linter_nm <- gitlab_safe_char(lint$linter, "unknown")
+        fname     <- gitlab_safe_char(lint$filename, "unknown")
+        line_num  <- gitlab_safe_int(lint$line_number, 1L)
+        col_num   <- gitlab_safe_int(lint$column_number, 0L)
+        lint_type <- gitlab_safe_char(lint$type, "style")
+
+        list(
+          description = msg,
+          check_name  = linter_nm,
+          fingerprint = digest::digest(
+            # Hash the fields as a structured list so no delimiter can ever
+            # make two different field sets collide.
+            list(fname, line_num, col_num, linter_nm, msg),
+            algo = "md5"
+          ),
+          location = list(
+            path  = fname,
+            lines = list(begin = line_num)
+          ),
+          severity = switch(lint_type,
+            style   = "minor",
+            error   = "blocker",
+            warning = "major",
+            "minor"
           )
         )
       }
     )
 
   write(jsonlite::toJSON(res, pretty = TRUE, auto_unbox = TRUE), filename)
+}
+
+# Safe scalar extraction helpers for gitlab_output(): guard against
+# NULL/NA/empty fields that can occur with custom or malformed linters.
+gitlab_safe_char <- function(x, default = "") {
+  if (is.null(x) || length(x) == 0L || is.na(x[[1L]])) {
+    return(default)
+  }
+  value <- as.character(x[[1L]])
+  if (nzchar(value)) value else default
+}
+
+gitlab_safe_int <- function(x, default = 0L) {
+  if (is.null(x) || length(x) == 0L || is.na(x[[1L]])) {
+    return(default)
+  }
+  value <- suppressWarnings(as.integer(x[[1L]]))
+  if (is.na(value)) default else value
 }
 
 highlight_string <- function(message, column_number = NULL, ranges = NULL) {
